@@ -1,4 +1,4 @@
-name: Build and Push Docker image
+name: Test, Build and Push Docker image
 
 on:
   push:
@@ -6,7 +6,27 @@ on:
       - main  # or master
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run unit tests
+        run: pytest
+
   build:
+    needs: test  # <-- this makes build wait for test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -21,7 +41,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push multi-platform image
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .

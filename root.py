@@ -62,6 +62,9 @@ def solve_roots(expr, search_range=(-10, 10), num_starts=20, tolerance=1e-10, ma
     
     # Round and sort roots
     roots = sorted(float(round(r, 8)) for r in deduped_roots)
+    
+    if not deduped_roots:
+        return {"success": False}
 
     try:
         x_vals = np.linspace(search_range[0], search_range[1], 1000)

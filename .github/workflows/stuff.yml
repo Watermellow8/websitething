@@ -1,9 +1,8 @@
 name: Test, Build and Push Docker image
 
 on:
-  push:
-    branches:
-      - main  # or master
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:

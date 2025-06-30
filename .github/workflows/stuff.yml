@@ -1,9 +1,8 @@
 name: Test, Build and Push Docker image
 
 on:
-  push:
-    branches:
-      - main  # or master
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:
@@ -15,7 +14,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.10
+          python-version: 3.11
 
       - name: Install dependencies
         run: |

@@ -1,9 +1,13 @@
-name: Test, Build and Push Docker image
+name: Test, Build, Push, and Deploy
 
 on:
+  pull_request:
+    branches: [ main ]
+
   push:
-    branches:
-      - main  # or master
+    branches: [ main ]            
+    tags:
+      - 'prd-*'             
 
 jobs:
   test:
@@ -15,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.10
+          python-version: 3.11
 
       - name: Install dependencies
         run: |
@@ -26,7 +30,8 @@ jobs:
         run: pytest
 
   build:
-    needs: test  # <-- this makes build wait for test
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/prd-'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -47,4 +52,23 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: watermellow8/root-solver:latest
+          tags: |
+            watermellow8/root-solver:latest
+            watermellow8/root-solver:${{ github.ref_name }}
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/prd-')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.GCLOUD_SSH_PRIVATE_KEY }}
+          script: |
+            docker pull watermellow8/root-solver:latest
+            docker stop root-solver || echo "No container running"
+            docker rm root-solver || echo "No container found"
+            docker run -d --name root-solver -p 80:8000 watermellow8/root-solver:latest

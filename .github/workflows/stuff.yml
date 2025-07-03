@@ -5,9 +5,9 @@ on:
     branches: [ main ]
 
   push:
-    branches: [ main ]            
+    branches: [ main ]
     tags:
-      - 'prd-*'             
+      - 'prd-*'
 
 jobs:
   test:
@@ -72,3 +72,4 @@ jobs:
             docker stop root-solver || echo "No container running"
             docker rm root-solver || echo "No container found"
             docker run -d --name root-solver -p 80:8000 watermellow8/root-solver:latest
+

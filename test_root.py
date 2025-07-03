@@ -26,6 +26,10 @@ def test_quad_root():
     for actual, expected in zip(actual_roots, expected_roots):
         assert actual == pytest.approx(expected, abs=1e-4)
 
+def test_no_root():
+    result = solve_roots("2*x^2-2*x + 3")
+    assert not result["success"]
+
 def test_single_root():
     result = solve_roots("x")
     assert result["success"]
@@ -43,5 +47,5 @@ def test_constant_expression():
 def test_no_variable():
     result = solve_roots("2 + 3")
     assert not result["success"]
-
+#Add more if you want
     

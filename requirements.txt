@@ -3,3 +3,4 @@ waitress
 numpy
 matplotlib
 mpld3
+sentry-sdk

@@ -72,4 +72,8 @@ jobs:
             docker stop root-solver 2>/dev/null || true
             sleep 2
             docker rm -f root-solver 2>/dev/null || true
-            docker run -d --name root-solver -p 80:8000 watermellow8/root-solver:latest
+            docker run -d --name root-solver \
+              -p 80:8000 \
+              -e SENTRY_DSN=${{ secrets.SENTRY_DSN }} \
+              watermellow8/root-solver:latest
+

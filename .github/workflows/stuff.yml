@@ -55,10 +55,11 @@ jobs:
           tags: |
             watermellow8/root-solver:latest
             watermellow8/root-solver:${{ github.ref_name }}
-
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/prd-')
+    if: |
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      (startsWith(github.ref, 'refs/tags/prd-') && github.event_name == 'push')
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
@@ -68,8 +69,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.GCLOUD_SSH_PRIVATE_KEY }}
           script: |
-            docker pull watermellow8/root-solver:latest
-            docker stop root-solver || echo "No container running"
-            docker rm root-solver || echo "No container found"
+            docker stop root-solver 2>/dev/null || true
+            sleep 2
+            docker rm -f root-solver 2>/dev/null || true
             docker run -d --name root-solver -p 80:8000 watermellow8/root-solver:latest
-

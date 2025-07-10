@@ -69,6 +69,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.GCLOUD_SSH_PRIVATE_KEY }}
           script: |
+            docker pull watermellow8/root-solver:latest
             docker stop root-solver 2>/dev/null || true
             sleep 2
             docker rm -f root-solver 2>/dev/null || true

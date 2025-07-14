@@ -1,18 +1,38 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from waitress import serve
 from root import solve_roots
+from flask_httpauth import HTTPBasicAuth
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 import os
 
+# Initialize Sentry
 sentry_sdk.init(
-    dsn=os.getenv("SENTRY_DSN"),  # Pull from environment variable
+    dsn=os.getenv("SENTRY_DSN"),
     integrations=[FlaskIntegration()],
     traces_sample_rate=1.0,
     environment="production"
 )
 
 app = Flask(__name__)
+auth = HTTPBasicAuth()
+
+# Example in-memory users (replace with your secure method)
+users = {
+    "admin": "securepassword",
+    "user": "userpassword"
+}
+
+@auth.verify_password
+def verify_password(username, password):
+    if username in users and users[username] == password:
+        return username
+    return None
+
+@auth.error_handler
+def unauthorized():
+    return "Unauthorized Access", 401
+
 
 @app.route('/')
 @app.route('/index')
@@ -21,6 +41,7 @@ def index():
 
 
 @app.route('/solve')
+@auth.login_required
 def solve():
     expr = request.args.get('expression', '').strip()
 
@@ -39,9 +60,10 @@ def solve():
         graph=result["graph_html"]
     )
 
+
 @app.route('/debug-sentry')
 def trigger_error():
-    1 / 0  # Deliberate crash to test Sentry
+    1 / 0
     return "<p>Hello, World!</p>"
 
 

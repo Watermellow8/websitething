@@ -2,14 +2,65 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Root Finder(hi)</title>
+    <title>Root Finder (Secure)</title>
 </head>
 <body>
-    <h1>Root Finder(by me)</h1>
-    <form action="/solve">
-        <label for="expression">Enter an expression:</label>
-        <input type="text" name="expression" id="expression" placeholder="e.g., x**3 - x" required>
+    <h1>Root Finder (by me)</h1>
+
+    <form id="rootForm">
+        <label>Expression:</label><br>
+        <input type="text" id="expression" placeholder="e.g., x**3 - x" required><br><br>
+
+        <label>Username:</label><br>
+        <input type="text" id="username" required><br><br>
+
+        <label>Password:</label><br>
+        <input type="password" id="password" required><br><br>
+
         <button type="submit">Find Roots</button>
     </form>
+
+    <hr>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('rootForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const expr = document.getElementById('expression').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!expr || !username || !password) {
+                alert("All fields are required!");
+                return;
+            }
+
+            const credentials = btoa(username + ':' + password);
+            const resultDiv = document.getElementById('result');
+
+            resultDiv.innerHTML = '⏳ Processing...';
+
+            try {
+                const response = await fetch(`/solve?expression=${encodeURIComponent(expr)}`, {
+                    headers: {
+                        'Authorization': 'Basic ' + credentials
+                    }
+                });
+
+                if (response.status === 401) {
+                    resultDiv.innerText = '❌ Unauthorized. Check your username/password.';
+                } else if (response.ok) {
+                    const html = await response.text();
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerText = `❌ Server Error: ${response.status}`;
+                }
+            } catch (err) {
+                console.error(err);
+                resultDiv.innerText = '❌ Network error or server unavailable.';
+            }
+        });
+    </script>
 </body>
 </html>

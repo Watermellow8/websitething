@@ -1,6 +1,7 @@
-Flask
+flask
 waitress
-numpy
-matplotlib
-mpld3
 sentry-sdk
+flask-httpauth
+mpld3
+matplotlib
+numpy

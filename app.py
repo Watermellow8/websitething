@@ -6,7 +6,6 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 import os
 
-# Initialize Sentry
 sentry_sdk.init(
     dsn=os.getenv("SENTRY_DSN"),
     integrations=[FlaskIntegration()],
@@ -17,7 +16,7 @@ sentry_sdk.init(
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
-# Example in-memory users (replace with your secure method)
+# Hardcoded users (for demonstration; replace with hashed passwords & db in prod)
 users = {
     "admin": "securepassword",
     "user": "userpassword"
@@ -28,11 +27,6 @@ def verify_password(username, password):
     if username in users and users[username] == password:
         return username
     return None
-
-@auth.error_handler
-def unauthorized():
-    return "Unauthorized Access", 401
-
 
 @app.route('/')
 @app.route('/index')
@@ -60,12 +54,14 @@ def solve():
         graph=result["graph_html"]
     )
 
+@app.route('/unauthorized')
+def unauthorized():
+    return "Unauthorized", 401
 
 @app.route('/debug-sentry')
 def trigger_error():
     1 / 0
     return "<p>Hello, World!</p>"
-
 
 if __name__ == "__main__":
     serve(app, host="0.0.0.0", port=8000)

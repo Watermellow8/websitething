@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from waitress import serve
 from root import solve_roots
+from flask_httpauth import HTTPBasicAuth
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 import os
@@ -13,6 +14,18 @@ sentry_sdk.init(
 )
 
 app = Flask(__name__)
+auth = HTTPBasicAuth()
+
+@auth.verify_password
+def verify_password(username, password):
+    if username in users and users[username] == password:
+        return username
+    return None
+
+@auth.error_handler
+def unauthorized():
+    return jsonify({'error': 'Unauthorized access'}), 401
+
 
 @app.route('/')
 @app.route('/index')

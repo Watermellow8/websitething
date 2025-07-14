@@ -16,7 +16,7 @@ sentry_sdk.init(
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
-# Hardcoded users (for demonstration; replace with hashed passwords & db in prod)
+# Hardcoded users (
 users = {
     "admin": "securepassword",
     "user": "userpassword"

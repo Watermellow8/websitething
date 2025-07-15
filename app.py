@@ -18,13 +18,18 @@ auth = HTTPBasicAuth()
 
 # Hardcoded users (
 users = {
-    "admin": "securepassword",
-    "user": "userpassword"
+    "admin": {"password": "securepassword", "role": "admin"},
+    "user": {"password": "userpassword", "role": "guest"}
 }
+
+from flask import g 
 
 @auth.verify_password
 def verify_password(username, password):
-    if username in users and users[username] == password:
+    user = users.get(username)
+    if user and user['password'] == password:
+        g.current_user = username
+        g.current_role = user['role']
         return username
     return None
 
@@ -51,15 +56,20 @@ def solve():
         "result.html",
         expression=result["expression"],
         roots=result["roots"],
-        graph=result["graph_html"]
+        graph=result["graph_html"],
+        role=g.current_role
     )
+
 
 @app.route('/unauthorized')
 def unauthorized():
     return "Unauthorized", 401
 
 @app.route('/debug-sentry')
+@auth.login_required
 def trigger_error():
+    if g.get('current_role') != 'admin':
+        return jsonify({'error': 'Forbidden: Admins only'}), 403
     1 / 0
     return "<p>Hello, World!</p>"
 

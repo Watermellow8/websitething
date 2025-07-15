@@ -69,7 +69,7 @@ def unauthorized():
 @auth.login_required
 def trigger_error():
     if g.get('current_role') != 'admin':
-        return jsonify({'error': 'Forbidden: Admins only'}), 403
+        return "<p>🚫 Forbidden: Admins only.</p><a href='/'>Return Home</a>", 403
     1 / 0
     return "<p>Hello, World!</p>"
 

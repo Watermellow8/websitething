@@ -5,3 +5,5 @@ flask-httpauth
 mpld3
 matplotlib
 numpy
+Werkzeug
+Flask-SQLAlchemy

@@ -7,20 +7,26 @@
 <body>
     <h1>Root Finder (by me)</h1>
 
-    <p>Welcome, {{ g.current_user }} (Role: {{ g.current_role }})</p>
-
     <form action="/solve" method="GET">
         <label for="expression">Enter an expression:</label><br>
         <input type="text" name="expression" id="expression" placeholder="e.g., x**3 - x" required><br><br>
-
         <button type="submit">Find Roots</button>
     </form>
 
     <hr>
 
-    {% if g.current_role == 'admin' %}
-        <a href="/debug-sentry">Trigger Sentry Test Error</a>
-    {% endif %}
+    <h2>Register New Guest</h2>
+    <form action="/register" method="POST">
+        <label for="username">Username:</label><br>
+        <input type="text" name="username" required><br><br>
 
+        <label for="password">Password:</label><br>
+        <input type="password" name="password" required><br><br>
+
+        <button type="submit">Register</button>
+    </form>
+
+    <hr>
+    <a href="/debug-sentry">Trigger Sentry Test Error</a>
 </body>
 </html>

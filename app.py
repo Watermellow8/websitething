@@ -86,7 +86,6 @@ def trigger_error():
 def unauthorized():
     return "Unauthorized", 401
 
-### Utility: Create initial users (run once) ###
 @app.cli.command('create-users')
 def create_users():
     db.create_all()
@@ -108,5 +107,30 @@ def create_users():
     else:
         print("Users already exist.")
 
+@app.route('/register', methods=['POST'])
+@auth.login_required
+def register_guest():
+    if g.current_role not in ['admin', 'guest']:
+        abort(403)
+
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    if not username or not password:
+        return "Missing username or password", 400
+
+    if User.query.filter_by(username=username).first():
+        return "User already exists", 400
+
+    guest = User(
+        username=username,
+        password_hash=generate_password_hash(password),
+        role='guest'
+    )
+    db.session.add(guest)
+    db.session.commit()
+    return f"Guest user '{username}' registered successfully!"
+
 if __name__ == "__main__":
     serve(app, host="0.0.0.0", port=8000)
+

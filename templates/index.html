@@ -7,6 +7,8 @@
 <body>
     <h1>Root Finder (by me)</h1>
 
+    <p>Welcome, {{ g.current_user }} (Role: {{ g.current_role }})</p>
+
     <form action="/solve" method="GET">
         <label for="expression">Enter an expression:</label><br>
         <input type="text" name="expression" id="expression" placeholder="e.g., x**3 - x" required><br><br>
@@ -15,6 +17,10 @@
     </form>
 
     <hr>
-    <a href="/debug-sentry">Trigger Sentry Test Error</a>
+
+    {% if g.current_role == 'admin' %}
+        <a href="/debug-sentry">Trigger Sentry Test Error</a>
+    {% endif %}
+
 </body>
 </html>

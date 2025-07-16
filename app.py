@@ -52,7 +52,7 @@ def role_required(role):
 @app.route('/')
 @app.route('/index')
 def index():
-    return render_template("index.html")
+    return render_template("index.html", role=g.current_role, username=g.current_user)
 
 @app.route('/solve')
 @auth.login_required

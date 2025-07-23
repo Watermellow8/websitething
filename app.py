@@ -75,12 +75,17 @@ def solve():
         role=g.current_role
     )
 
+from sentry_sdk import capture_exception, flush
 @app.route('/debug-sentry')
 @auth.login_required
 @role_required('admin')
 def trigger_error():
-    1 / 0  # Intentional crash for Sentry
-    return "<p>Hello, World!</p>"
+    try:
+        1 / 0
+    except Exception as e:
+        capture_exception(e)  # manually send the exception to Sentry
+        flush()               # force immediate flush
+        return "Triggered and flushed error to Sentry"
 
 @app.route('/unauthorized')
 def unauthorized():

@@ -22,29 +22,55 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 auth = HTTPBasicAuth()
 
+# Models
+user_roles = db.Table('user_roles',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('role_id', db.Integer, db.ForeignKey('role.id'))
+)
+
+role_permissions = db.Table('role_permissions',
+    db.Column('role_id', db.Integer, db.ForeignKey('role.id')),
+    db.Column('permission_id', db.Integer, db.ForeignKey('permission.id'))
+)
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # 'admin' or 'guest'
+    roles = db.relationship('Role', secondary=user_roles, backref='users')
 
+class Role(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), unique=True, nullable=False)
+    permissions = db.relationship('Permission', secondary=role_permissions, backref='roles')
+
+class Permission(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), unique=True, nullable=False)
+
+# Auth
 @auth.verify_password
 def verify_password(username, password):
     user = User.query.filter_by(username=username).first()
     if user and check_password_hash(user.password_hash, password):
-        g.current_user = user.username
-        g.current_role = user.role
+        g.current_user = user
         return True
     return False
 
-### Role-based Authorization Decorator ###
-def role_required(role):
+# Permission check
+
+def permission_required(permission_name):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if g.get('current_role') != role:
+            user = g.get('current_user')
+            if not user:
                 abort(403)
-            return f(*args, **kwargs)
+            for role in user.roles:
+                for perm in role.permissions:
+                    if perm.name == permission_name:
+                        return f(*args, **kwargs)
+            abort(403)
         return decorated_function
     return decorator
 
@@ -52,7 +78,7 @@ def role_required(role):
 @app.route('/index')
 @auth.login_required
 def index():
-    return render_template("index.html", role=g.current_role, username=g.current_user)
+    return render_template("index.html", username=g.current_user.username, role_names=[r.name for r in g.current_user.roles])
 
 @app.route('/solve')
 @auth.login_required
@@ -72,20 +98,15 @@ def solve():
         expression=result["expression"],
         roots=result["roots"],
         graph=result["graph_html"],
-        role=g.current_role
+        role_names=[r.name for r in g.current_user.roles]
     )
 
-from sentry_sdk import capture_exception, flush
 @app.route('/debug-sentry')
 @auth.login_required
-@role_required('admin')
+@permission_required('trigger_error')
 def trigger_error():
-    try:
-        1 / 0
-    except Exception as e:
-        capture_exception(e)  # manually send the exception to Sentry
-        flush()               # force immediate flush
-        return "Triggered and flushed error to Sentry"
+    1 / 0  # Intentional crash for Sentry
+    return "<p>Hello, World!</p>"
 
 @app.route('/unauthorized')
 def unauthorized():
@@ -94,19 +115,35 @@ def unauthorized():
 @app.cli.command('create-users')
 def create_users():
     db.create_all()
+
+    # Create permissions
+    p1 = Permission(name='trigger_error')
+    db.session.add(p1)
+    db.session.commit()
+
+    # Create roles
+    admin_role = Role(name='admin')
+    guest_role = Role(name='guest')
+    admin_role.permissions.append(p1)
+
+    db.session.add_all([admin_role, guest_role])
+    db.session.commit()
+
+    # Create users
     if not User.query.filter_by(username='admin').first():
         admin = User(
             username='admin',
-            password_hash=generate_password_hash('securepassword'),
-            role='admin'
+            password_hash=generate_password_hash('securepassword')
         )
+        admin.roles.append(admin_role)
+
         guest = User(
             username='user',
-            password_hash=generate_password_hash('userpassword'),
-            role='guest'
+            password_hash=generate_password_hash('userpassword')
         )
-        db.session.add(admin)
-        db.session.add(guest)
+        guest.roles.append(guest_role)
+
+        db.session.add_all([admin, guest])
         db.session.commit()
         print("Admin and guest users created.")
     else:
@@ -115,9 +152,6 @@ def create_users():
 @app.route('/register', methods=['POST'])
 @auth.login_required
 def register_guest():
-    if g.current_role not in ['admin', 'guest']:
-        abort(403)
-
     username = request.form.get('username')
     password = request.form.get('password')
 
@@ -127,15 +161,16 @@ def register_guest():
     if User.query.filter_by(username=username).first():
         return "User already exists", 400
 
-    guest = User(
+    user = User(
         username=username,
-        password_hash=generate_password_hash(password),
-        role='guest'
+        password_hash=generate_password_hash(password)
     )
-    db.session.add(guest)
+    guest_role = Role.query.filter_by(name='guest').first()
+    if guest_role:
+        user.roles.append(guest_role)
+    db.session.add(user)
     db.session.commit()
     return f"Guest user '{username}' registered successfully!"
 
 if __name__ == "__main__":
     serve(app, host="0.0.0.0", port=8000)
-

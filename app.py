@@ -84,8 +84,12 @@ def permission_required(permission_name):
 @app.route('/index')
 @auth.login_required
 def index():
-    return render_template("index.html", username=g.current_user.username)
-
+    return render_template(
+        "index.html",
+        username=g.current_user.username,
+        can_create_users=user_has_permission('create_user'),
+        can_create_admins=user_has_permission('create_ad')
+    )
 @app.route('/solve')
 @auth.login_required
 @permission_required('solve_function')
@@ -141,6 +145,32 @@ def register_user():
     db.session.commit()
     return f"User '{username}' registered successfully!", 201
 
+@app.route('/create-admin', methods=['POST'])
+@auth.login_required
+@permission_required('create_ad')
+def create_admin():
+    username = request.form.get('username') or request.json.get('username')
+    password = request.form.get('password') or request.json.get('password')
+
+    if not username or not password:
+        return "Missing username or password", 400
+
+    if User.query.filter_by(username=username).first():
+        return "User already exists", 400
+
+    admin_role = Role.query.filter_by(name='admin').first()
+    if not admin_role:
+        return "Admin role not found", 500
+
+    new_user = User(
+        username=username,
+        password_hash=generate_password_hash(password),
+        roles=[admin_role]
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    return f"Admin user '{username}' created successfully!", 201
+
 @app.route('/unauthorized')
 def unauthorized():
     return "Unauthorized", 401
@@ -151,7 +181,7 @@ def init_auth():
     db.create_all()
 
     # Create permissions
-    perms = ['solve_function', 'trigger_error', 'create_user']
+    perms = ['solve_function', 'trigger_error', 'create_user', 'create_ad']
     for pname in perms:
         if not Permission.query.filter_by(name=pname).first():
             db.session.add(Permission(name=pname))
@@ -161,7 +191,9 @@ def init_auth():
     solve_perm = Permission.query.filter_by(name='solve_function').first()
     error_perm = Permission.query.filter_by(name='trigger_error').first()
     create_perm = Permission.query.filter_by(name='create_user').first()
+    create_ad = Permission.query.filter_by(name='create_ad').first()
 
+    owner_role = Role(name='owner', permissions=[solve_perm, error_perm, create_ad])
     admin_role = Role(name='admin', permissions=[solve_perm, error_perm, create_perm])
     guest_role = Role(name='guest', permissions=[solve_perm])
 
@@ -169,7 +201,17 @@ def init_auth():
         if not Role.query.filter_by(name=role.name).first():
             db.session.add(role)
     db.session.commit()
+    
+    if not User.query.filter_by(username='owned').first():
+        owner_user = User(
+            username='owned',
+            password_hash=generate_password_hash('trollhd'),
+            roles=[owner_role]
+        )
+        db.session.add(owner_user)
+        db.session.commit()
 
+    db.session.add(owner_user)
     # Create users
     if not User.query.filter_by(username='admin').first():
         admin_user = User(
@@ -188,29 +230,6 @@ def init_auth():
         print("Admin and guest users created.")
     else:
         print("Users already exist.")
-
-@app.cli.command('create-admin')
-def create_admin():
-    username = input("New admin username: ")
-    password = input("New admin password: ")
-
-    if User.query.filter_by(username=username).first():
-        print("User already exists.")
-        return
-
-    admin_role = Role.query.filter_by(name='admin').first()
-    if not admin_role:
-        print("Admin role not found.")
-        return
-
-    new_user = User(
-        username=username,
-        password_hash=generate_password_hash(password),
-        roles=[admin_role]
-    )
-    db.session.add(new_user)
-    db.session.commit()
-    print(f"Admin user '{username}' created.")
 
 # --- Start server ---
 if __name__ == "__main__":

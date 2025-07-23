@@ -177,6 +177,7 @@ def unauthorized():
 
 # --- CLI Command to initialize DB ---
 @app.cli.command('init-auth')
+@app.cli.command('init-auth')
 def init_auth():
     db.create_all()
 
@@ -187,21 +188,33 @@ def init_auth():
             db.session.add(Permission(name=pname))
     db.session.commit()
 
-    # Create roles
+    # Fetch permissions from DB
     solve_perm = Permission.query.filter_by(name='solve_function').first()
     error_perm = Permission.query.filter_by(name='trigger_error').first()
     create_perm = Permission.query.filter_by(name='create_user').first()
     create_ad = Permission.query.filter_by(name='create_ad').first()
 
-    owner_role = Role(name='owner', permissions=[solve_perm, error_perm, create_ad])
-    admin_role = Role(name='admin', permissions=[solve_perm, error_perm, create_perm])
-    guest_role = Role(name='guest', permissions=[solve_perm])
+    # Create roles if not exist
+    if not Role.query.filter_by(name='owner').first():
+        owner_role = Role(name='owner', permissions=[solve_perm, error_perm, create_ad])
+        db.session.add(owner_role)
 
-    for role in [admin_role, guest_role]:
-        if not Role.query.filter_by(name=role.name).first():
-            db.session.add(role)
-    db.session.commit()
-    
+    if not Role.query.filter_by(name='admin').first():
+        admin_role = Role(name='admin', permissions=[solve_perm, error_perm, create_perm])
+        db.session.add(admin_role)
+
+    if not Role.query.filter_by(name='guest').first():
+        guest_role = Role(name='guest', permissions=[solve_perm])
+        db.session.add(guest_role)
+
+    db.session.commit()  # Commit roles
+
+    # Retrieve roles again from DB (safe and committed)
+    owner_role = Role.query.filter_by(name='owner').first()
+    admin_role = Role.query.filter_by(name='admin').first()
+    guest_role = Role.query.filter_by(name='guest').first()
+
+    # Create users if they don't exist
     if not User.query.filter_by(username='owned').first():
         owner_user = User(
             username='owned',
@@ -210,26 +223,33 @@ def init_auth():
         )
         db.session.add(owner_user)
         db.session.commit()
+        print("Owner user created.")
+    else:
+        print("Owner user already exists.")
 
-    db.session.add(owner_user)
-    # Create users
     if not User.query.filter_by(username='admin').first():
         admin_user = User(
             username='admin',
             password_hash=generate_password_hash('securepassword'),
             roles=[admin_role]
         )
+        db.session.add(admin_user)
+        print("Admin user created.")
+    else:
+        print("Admin user already exists.")
+
+    if not User.query.filter_by(username='guest').first():
         guest_user = User(
             username='guest',
             password_hash=generate_password_hash('guestpassword'),
             roles=[guest_role]
         )
-        db.session.add(admin_user)
         db.session.add(guest_user)
-        db.session.commit()
-        print("Admin and guest users created.")
+        print("Guest user created.")
     else:
-        print("Users already exist.")
+        print("Guest user already exists.")
+
+    db.session.commit()
 
 # --- Start server ---
 if __name__ == "__main__":

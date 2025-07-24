@@ -18,35 +18,54 @@
     <hr>
 
     {% if can_create_users %}
-    <h2>Register New User (with permissions)</h2>
-    <form action="/register" method="POST">
+    <h2>Create New User (solve-only)</h2>
+    <form action="/create-user" method="POST">
         <label for="username">Username:</label><br>
         <input type="text" name="username" required><br><br>
 
         <label for="password">Password:</label><br>
         <input type="password" name="password" required><br><br>
 
-        <label for="permissions">Assign Permissions:</label><br>
-        <select name="permissions" multiple required>
-            <option value="solve_function">Solve Function</option>
-            <option value="trigger_error">Trigger Error</option>
-            <option value="create_user">Create Users</option>
-            <option value="create_ad">Create Admin</option>
-        </select><br><br>
+        <input type="hidden" name="permissions" value="solve_function">
 
-        <button type="submit">Register</button>
+        <button type="submit">Create User</button>
+    </form>
+    <hr>
+    {% endif %}
+
+    {% if can_create_mods %}
+    <h2>Create New Mod (limited permissions)</h2>
+    <form action="/create-mod" method="POST">
+        <label for="username">Mod Username:</label><br>
+        <input type="text" name="username" required><br><br>
+
+        <label for="password">Mod Password:</label><br>
+        <input type="password" name="password" required><br><br>
+
+        <label>Assign Permissions:</label><br>
+        <label><input type="checkbox" name="permissions" value="solve_function"> Solve Function</label><br>
+        <label><input type="checkbox" name="permissions" value="trigger_error"> Trigger Error</label><br>
+        <label><input type="checkbox" name="permissions" value="create_user"> Create Users</label><br><br>
+
+        <button type="submit">Create Mod</button>
     </form>
     <hr>
     {% endif %}
 
     {% if can_create_admins %}
-    <h2>Create New Admin</h2>
+    <h2>Create New Admin (flexible permissions)</h2>
     <form action="/create-admin" method="POST">
         <label for="username">Admin Username:</label><br>
         <input type="text" name="username" required><br><br>
 
         <label for="password">Admin Password:</label><br>
         <input type="password" name="password" required><br><br>
+
+        <label>Assign Permissions:</label><br>
+        <label><input type="checkbox" name="permissions" value="solve_function"> Solve Function</label><br>
+        <label><input type="checkbox" name="permissions" value="trigger_error"> Trigger Error</label><br>
+        <label><input type="checkbox" name="permissions" value="create_user"> Create Users</label><br>
+        <label><input type="checkbox" name="permissions" value="create_mod"> Create Mod</label><br><br>
 
         <button type="submit">Create Admin</button>
     </form>
@@ -56,4 +75,3 @@
     <a href="/debug-sentry">Trigger Sentry Test Error</a>
 </body>
 </html>
-

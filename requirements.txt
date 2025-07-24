@@ -1,9 +1,10 @@
 flask
 waitress
+flask_sqlalchemy
+flask_httpauth
+werkzeug
 sentry-sdk
-flask-httpauth
-mpld3
-matplotlib
+click
 numpy
-Werkzeug
-Flask-SQLAlchemy
+matplotlib
+mpld3

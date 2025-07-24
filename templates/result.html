@@ -8,11 +8,11 @@
     <h1>Results for: {{ expression }}</h1>
     <p>Roots found: {{ roots }}</p>
 
-    {% if role == 'admin' %}
+    {% if 'graph' in permissions %}
         <h2>Graph:</h2>
         <div>{{ graph|safe }}</div>
     {% else %}
-        <p>You do not have permission to view the graph. Admins only.</p>
+        <p>You do not have permission to view the graph.</p>
     {% endif %}
 
     <a href="/">Try another</a>

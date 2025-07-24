@@ -26,7 +26,12 @@
         <label for="password">Password:</label><br>
         <input type="password" name="password" required><br><br>
 
-        <!-- Permissions are fixed in backend (solve_function + create_user) -->
+        <label>Assign Permissions:</label><br>
+        <label><input type="checkbox" name="permissions" value="solve_function"> Solve Function</label><br>
+        <label><input type="checkbox" name="permissions" value="trigger_error"> Trigger Error</label><br>
+        <label><input type="checkbox" name="permissions" value="create_user"> Create User</label><br>
+        <label><input type="checkbox" name="permissions" value="graph"> Graph</label><br><br>
+
         <button type="submit">Register</button>
     </form>
     <hr>
@@ -44,7 +49,9 @@
         <label>Assign Permissions:</label><br>
         <label><input type="checkbox" name="permissions" value="solve_function"> Solve Function</label><br>
         <label><input type="checkbox" name="permissions" value="trigger_error"> Trigger Error</label><br>
-        <label><input type="checkbox" name="permissions" value="create_user"> Create User</label><br><br>
+        <label><input type="checkbox" name="permissions" value="create_user"> Create User</label><br>
+        <label><input type="checkbox" name="permissions" value="graph"> Graph</label><br>
+        <label><input type="checkbox" name="permissions" value="create_ad"> Create Admin</label><br><br>
 
         <button type="submit">Create Admin</button>
     </form>
@@ -54,3 +61,4 @@
     <a href="/debug-sentry">Trigger Sentry Test Error</a>
 </body>
 </html>
+

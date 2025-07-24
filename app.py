@@ -75,7 +75,7 @@ def index():
         "index.html",
         username=g.current_user.username,
         can_create_users=user_has_permission('create_user'),
-        can_create_admins=user_has_permission('create_ad')
+        can_create_admins=user_has_permission('create_ad'),
     )
 
 @app.route('/solve')
@@ -94,7 +94,8 @@ def solve():
         "result.html",
         expression=result["expression"],
         roots=result["roots"],
-        graph=result["graph_html"]
+        graph=result["graph_html"],
+        permissions=[p.name for p in g.current_user.permissions]
     )
 
 @app.route('/debug-sentry')
@@ -108,8 +109,10 @@ def trigger_error():
 @auth.login_required
 @permission_required('create_user')
 def register_user():
-    username = request.form.get('username')
-    password = request.form.get('password')
+    data = request.form or request.json
+    username = data.get('username')
+    password = data.get('password')
+    requested = request.form.getlist('permissions') or data.get('permissions', [])
 
     if not username or not password:
         return "Missing username or password", 400
@@ -117,72 +120,13 @@ def register_user():
     if User.query.filter_by(username=username).first():
         return "User already exists", 400
 
-    # Always assign solve_function and create_user
-    solve = Permission.query.filter_by(name='solve_function').first()
-    create_user = Permission.query.filter_by(name='create_user').first()
+    allowed_set = {'solve_function', 'trigger_error', 'create_user', 'graph'}
+    filtered = [p for p in requested if p in allowed_set]
 
-    if not solve or not create_user:
-        return "Required permissions not found in database", 500
+    if not filtered:
+        return "Must assign at least one valid permission", 400
 
-    new_user = User(
-        username=username,
-        password_hash=generate_password_hash(password),
-        permissions=[solve, create_user]
-    )
-    db.session.add(new_user)
-    db.session.commit()
-    return f"User '{username}' registered with solve + create_user permissions!", 201
-
-@app.route('/create-admin', methods=['POST'])
-@auth.login_required
-@permission_required('create_ad')
-def create_admin():
-    data = request.form or request.json
-    username = data.get('username')
-    password = data.get('password')
-    perm_names = data.getlist('permissions') if request.form else data.get('permissions', [])
-
-    if not username or not password or not perm_names:
-        return "Missing username, password, or permissions", 400
-
-    if User.query.filter_by(username=username).first():
-        return "User already exists", 400
-
-    forbidden = {'create_ad', 'create_own'}
-    if any(p in forbidden for p in perm_names):
-        return "You cannot assign 'create_ad' or 'create_own' permissions", 403
-
-    perms = Permission.query.filter(Permission.name.in_(perm_names)).all()
-    if not perms or len(perms) != len(set(perm_names)):
-        return "One or more permissions are invalid", 400
-
-    new_user = User(
-        username=username,
-        password_hash=generate_password_hash(password),
-        permissions=perms
-    )
-    db.session.add(new_user)
-    db.session.commit()
-    return f"Admin user '{username}' created successfully!", 201
-
-@app.route('/create-owner', methods=['POST'])
-@auth.login_required
-@permission_required('create_own')
-def create_owner():
-    data = request.form or request.json
-    username = data.get('username')
-    password = data.get('password')
-
-    if not username or not password:
-        return "Missing username or password", 400
-
-    if User.query.filter_by(username=username).first():
-        return "User already exists", 400
-
-    # Assign only these permissions: solve, sentry debug, and create_ad
-    allowed = Permission.query.filter(Permission.name.in_([
-        'solve_function', 'trigger_error', 'create_ad'
-    ])).all()
+    allowed = Permission.query.filter(Permission.name.in_(filtered)).all()
 
     new_user = User(
         username=username,
@@ -191,7 +135,40 @@ def create_owner():
     )
     db.session.add(new_user)
     db.session.commit()
-    return f"Owner user '{username}' created successfully.", 201
+    return f"User '{username}' created with permissions: {', '.join(filtered)}", 201
+
+
+@app.route('/create-admin', methods=['POST'])
+@auth.login_required
+@permission_required('create_ad')
+def create_admin():
+    data = request.form or request.json
+    username = data.get('username')
+    password = data.get('password')
+    requested = request.form.getlist('permissions') or data.get('permissions', [])
+
+    if not username or not password:
+        return "Missing username or password", 400
+
+    if User.query.filter_by(username=username).first():
+        return "User already exists", 400
+
+    allowed_set = {'solve_function', 'trigger_error', 'create_ad', 'create_user', 'graph'}
+    filtered = [p for p in requested if p in allowed_set]
+
+    if not filtered:
+        return "Must assign at least one valid permission", 400
+
+    allowed = Permission.query.filter(Permission.name.in_(filtered)).all()
+
+    new_user = User(
+        username=username,
+        password_hash=generate_password_hash(password),
+        permissions=allowed
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    return f"Admin user '{username}' created with permissions: {', '.join(filtered)}", 201
 
 @app.route('/unauthorized')
 def unauthorized():
@@ -203,7 +180,7 @@ def init_auth():
     db.create_all()
 
     # Create permissions
-    perms = ['solve_function', 'trigger_error', 'create_user', 'create_ad', 'create_own']
+    perms = ['solve_function', 'trigger_error', 'create_user', 'create_ad','graph']
     for pname in perms:
         if not Permission.query.filter_by(name=pname).first():
             db.session.add(Permission(name=pname))
@@ -214,7 +191,7 @@ def init_auth():
     error = Permission.query.filter_by(name='trigger_error').first()
     create_user = Permission.query.filter_by(name='create_user').first()
     create_ad = Permission.query.filter_by(name='create_ad').first()
-    create_own = Permission.query.filter_by(name='create_own').first()
+    graph = Permission.query.filter_by(name='graph').first()
 
     # Create users with explicit permissions
     def create_user_if_not_exists(username, password, perms):
@@ -230,9 +207,9 @@ def init_auth():
         db.session.commit()
         print(f"User {username} created.")
 
-    create_user_if_not_exists('owned', 'trollhd', [solve, error, create_own])
-    create_user_if_not_exists('admin', 'securepassword', [solve, error, create_ad])
-    create_user_if_not_exists('guest', 'guestpassword', [solve, create_user])
+    create_user_if_not_exists('owned', 'trollhd', [solve, error, create_ad,graph])
+    create_user_if_not_exists('admin', 'securepassword', [solve, error, create_user,graph])
+    create_user_if_not_exists('guest', 'guestpassword', [solve,graph])
 
 # --- Start server ---
 if __name__ == "__main__":

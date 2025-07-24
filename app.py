@@ -95,7 +95,7 @@ def solve():
         "result.html",
         expression=result["expression"],
         roots=result["roots"],
-        graph=graph
+        graph=graph,
         permissions=[p.name for p in g.current_user.permissions]
     )
 

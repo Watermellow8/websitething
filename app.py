@@ -83,26 +83,6 @@ def init_auth():
 
     print("Initialized auth with default owner.")
 
-@app.route('/create-admin', methods=['POST'])
-@permission_required('create_admin')
-def create_admin():
-    data = request.form or request.json
-    username = data.get('username')
-    password = data.get('password')
-    requested = set(data.get('permissions', []))
-
-    if not username or not password or not requested:
-        return "Missing required fields", 400
-
-    if User.query.filter_by(username=username).first():
-        return "User already exists", 400
-
-    perms = Permission.query.filter(Permission.name.in_(requested)).all()
-    new_user = User(username=username, password_hash=generate_password_hash(password), permissions=perms)
-    db.session.add(new_user)
-    db.session.commit()
-    return f"Admin user '{username}' created successfully!", 201
-
 @app.route('/create-user', methods=['POST'])
 @permission_required('create_user')
 def create_user_route():
@@ -150,6 +130,43 @@ def create_mod():
     db.session.add(new_user)
     db.session.commit()
     return f"Moderator user '{username}' created successfully!", 201
+
+@app.route('/create-admin', methods=['POST'])
+@permission_required('create_admin')
+def create_admin():
+    data = request.form or request.json
+    username = data.get('username')
+    password = data.get('password')
+    requested = set(data.get('permissions', []))
+
+    if not username or not password or not requested:
+        return "Missing required fields", 400
+
+    if User.query.filter_by(username=username).first():
+        return "User already exists", 400
+
+    perms = Permission.query.filter(Permission.name.in_(requested)).all()
+    new_user = User(username=username, password_hash=generate_password_hash(password), permissions=perms)
+    db.session.add(new_user)
+    db.session.commit()
+    return f"Admin user '{username}' created successfully!", 201
+
+@app.route('/solve', methods=['POST'])
+@permission_required('solve_function')
+def solve():
+    data = request.form or request.json
+    expr = data.get('expr', '')
+    try:
+        result = solve_roots(expr)
+        return jsonify({'success': True, 'result': result})
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/trigger-error')
+@permission_required('trigger_error')
+def trigger_error():
+    raise RuntimeError("This is a test error for Sentry!")
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -18,7 +18,7 @@
     <hr>
 
     {% if can_create_users %}
-    <h2>Register New Guest</h2>
+    <h2>Register New User (with permissions)</h2>
     <form action="/register" method="POST">
         <label for="username">Username:</label><br>
         <input type="text" name="username" required><br><br>
@@ -26,8 +26,14 @@
         <label for="password">Password:</label><br>
         <input type="password" name="password" required><br><br>
 
-        <!-- Assign guest role -->
-        <input type="hidden" name="roles" value="guest">
+        <label for="permissions">Assign Permissions:</label><br>
+        <select name="permissions" multiple required>
+            <option value="solve_function">Solve Function</option>
+            <option value="trigger_error">Trigger Error</option>
+            <option value="create_user">Create Users</option>
+            <option value="create_ad">Create Admin</option>
+        </select><br><br>
+
         <button type="submit">Register</button>
     </form>
     <hr>
@@ -50,3 +56,4 @@
     <a href="/debug-sentry">Trigger Sentry Test Error</a>
 </body>
 </html>
+

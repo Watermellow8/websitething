@@ -197,6 +197,22 @@ def init_auth():
     create_user_if_not_exists('admin', 'securepassword', [solve, error, create_user])
     create_user_if_not_exists('guest', 'guestpassword', [solve])
 
+import click
+from flask.cli import with_appcontext
+
+@app.cli.command("list-users")
+@with_appcontext
+def list_users():
+    """List all users and their permissions."""
+    users = User.query.all()
+    if not users:
+        click.echo("No users found.")
+        return
+
+    for user in users:
+        perms = [perm.name for perm in user.permissions]
+        click.echo(f"- {user.username}: {', '.join(perms) or 'No permissions'}")
+
 # --- Start server ---
 if __name__ == "__main__":
     serve(app, host="0.0.0.0", port=8000)

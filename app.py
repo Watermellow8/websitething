@@ -90,11 +90,12 @@ def solve():
     if not result['success']:
         return render_template("function-not-found.html")
 
+    graph = "<div style='width:100px;height:100px;background:red;'>Test Graph</div>"
     return render_template(
         "result.html",
         expression=result["expression"],
         roots=result["roots"],
-        graph=result["graph_html"],
+        graph=graph
         permissions=[p.name for p in g.current_user.permissions]
     )
 

@@ -89,13 +89,14 @@ def solve():
     result = solve_roots(expr)
     if not result['success']:
         return render_template("function-not-found.html")
+    print("RESULT:", result)
+    print("USER PERMISSIONS:", [p.name for p in g.current_user.permissions])
 
-    graph = "<div style='width:100px;height:100px;background:red;'>Test Graph</div>"
     return render_template(
         "result.html",
         expression=result["expression"],
         roots=result["roots"],
-        graph=graph,
+        graph=result["graph_html"],
         permissions=[p.name for p in g.current_user.permissions]
     )
 

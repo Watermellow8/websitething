@@ -89,8 +89,6 @@ def solve():
     result = solve_roots(expr)
     if not result['success']:
         return render_template("function-not-found.html")
-    print("RESULT:", result)
-    print("USER PERMISSIONS:", [p.name for p in g.current_user.permissions])
 
     return render_template(
         "result.html",

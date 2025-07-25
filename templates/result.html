@@ -5,12 +5,10 @@
     <title>Results for {{ expression }}</title>
 </head>
 <body>
-    <p>Debug: permissions = {{ permissions }}</p>
-    <pre>{{ graph }}</pre>
     <h1>Results for: {{ expression }}</h1>
     <p>Roots found: {{ roots }}</p>
 
-    {% if True %}
+    {% if 'graph' in permissions %}
         <h2>Graph:</h2>
         <div>{{ graph|safe }}</div>
     {% else %}

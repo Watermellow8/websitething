@@ -170,9 +170,13 @@ def create_admin():
     db.session.commit()
     return f"Admin user '{username}' created with permissions: {', '.join(filtered)}", 201
 
-@app.route('/unauthorized')
-def unauthorized():
-    return "Unauthorized", 401
+@app.errorhandler(403)
+@app.errorhandler(405)
+def handle_access_errors(error):
+    return (
+        "Access Denied: You either lack permissions or used the wrong method.",
+        403
+    )
 
 # --- CLI Command to initialize DB ---
 @app.cli.command('init-auth')
@@ -207,9 +211,9 @@ def init_auth():
         db.session.commit()
         print(f"User {username} created.")
 
-    create_user_if_not_exists('owned', 'trollhd', [solve, error, create_ad,graph])
+    create_user_if_not_exists('owned', 'trollhd', [solve, error, create_ad, graph])
     create_user_if_not_exists('admin', 'securepassword', [solve, error, create_user,graph])
-    create_user_if_not_exists('guest', 'guestpassword', [solve,graph])
+    create_user_if_not_exists('guest', 'guestpassword', [solve, graph])
 
 # --- Start server ---
 if __name__ == "__main__":
